@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NeuroVoyage — Neural Network Explorer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="scene"></canvas>
+
+      <header class="topbar">
+        <div class="brand">
+          <span class="logo">◉</span>
+          <div>
+            <h1>NeuroVoyage</h1>
+            <p>Clinical Neural Network Explorer · EEG / fMRI / BCI</p>
+          </div>
+        </div>
+        <div class="patient">
+          <label>Patient</label>
+          <select id="patientSelect"></select>
+          <span id="statusPill" class="pill pill-live">● LIVE</span>
+        </div>
+      </header>
+
+      <aside class="panel panel-left">
+        <section class="card">
+          <h2>Navigation</h2>
+          <p class="hint">Drag to orbit · scroll to zoom · use the region list to fly through the network.</p>
+          <div id="regionList" class="region-list"></div>
+        </section>
+
+        <section class="card">
+          <h2>Signal Modality</h2>
+          <div class="toggles" id="modalityToggles">
+            <button class="tog active" data-mode="eeg">EEG</button>
+            <button class="tog" data-mode="fmri">fMRI (BOLD)</button>
+            <button class="tog" data-mode="bci">BCI Spikes</button>
+          </div>
+          <label class="slider-row">
+            <span>Activity gain</span>
+            <input id="gain" type="range" min="0.2" max="2.5" step="0.1" value="1" />
+          </label>
+          <label class="slider-row">
+            <span>Fly speed</span>
+            <input id="speed" type="range" min="0.2" max="3" step="0.1" value="1" />
+          </label>
+          <label class="check-row">
+            <input id="pulseToggle" type="checkbox" checked /> Signal propagation pulses
+          </label>
+        </section>
+      </aside>
+
+      <aside class="panel panel-right">
+        <section class="card">
+          <h2>EEG — 8 Channel</h2>
+          <canvas id="eegCanvas" width="360" height="200"></canvas>
+          <div class="metric-row">
+            <div><label>Dominant</label><strong id="eegBand">Alpha</strong></div>
+            <div><label>Sample</label><strong id="eegRate">256 Hz</strong></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>fMRI — BOLD Activation</h2>
+          <div id="fmriGrid" class="fmri-grid"></div>
+          <p class="hint" id="fmriCaption">Voxel activation map (regional Z-score)</p>
+        </section>
+
+        <section class="card bci-card">
+          <h2>BCI Link</h2>
+          <div class="bci-device">
+            <select id="bciDevice">
+              <option value="neuralink">Neuralink N1 (1024 ch)</option>
+              <option value="blackrock">Blackrock Utah Array (96 ch)</option>
+              <option value="openbci">OpenBCI Cyton (8 ch)</option>
+            </select>
+            <button id="bciConnect" class="connect-btn">Connect</button>
+          </div>
+          <div class="bci-stats">
+            <div><label>Firing rate</label><strong id="bciRate">— Hz</strong></div>
+            <div><label>Impedance</label><strong id="bciImp">— kΩ</strong></div>
+            <div><label>Packet loss</label><strong id="bciLoss">— %</strong></div>
+            <div><label>Decoded intent</label><strong id="bciIntent">—</strong></div>
+          </div>
+          <div id="raster" class="raster"></div>
+        </section>
+      </aside>
+
+      <footer class="statusbar">
+        <span id="regionInfo">Region: —</span>
+        <span id="fps">-- fps</span>
+        <span class="disclaimer">Research / demo visualization — not for diagnostic use.</span>
+      </footer>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
