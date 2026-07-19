@@ -165,6 +165,47 @@ html, body {
 }
 .fmri-cell { aspect-ratio: 1; border-radius: 3px; background: #0a1830; }
 
+.gol-toggles { display: flex; gap: 6px; margin-bottom: 8px; }
+.gtog {
+  flex: 1;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--panel-border);
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 6px 4px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.gtog.active { color: var(--text); border-color: var(--accent2); background: rgba(178,107,255,0.18); }
+#golCanvas {
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: #04101c;
+}
+.gol-controls { margin-top: 8px; }
+.gol-btns { display: flex; gap: 6px; margin-top: 10px; }
+.mini-btn {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 6px 4px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.mini-btn:hover { border-color: var(--accent2); }
+.gol-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 18px;
+  margin: 12px 0 4px;
+}
+.gol-stats strong { font-size: 15px; }
+
 .bci-device { display: flex; gap: 8px; }
 .bci-device select {
   flex: 1;

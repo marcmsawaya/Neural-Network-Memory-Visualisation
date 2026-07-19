@@ -17,6 +17,12 @@ used in hospitals and brain–computer-interface (BCI) research:
   decoded intent, and a live spike raster.
 - **Patient cases** — healthy control, pre-surgical epilepsy, motor-BCI trial,
   and post-stroke rehab, each shaping the network's dynamics.
+- **GOL — Game of Life / game-theory AI** — a spatial evolutionary-game engine.
+  In *Econ* mode every cell is an economic agent playing the Prisoner's Dilemma
+  (T>R>P>S payoffs) against its neighbors and imitating the best-earning strategy
+  (spatial replicator / best-response dynamics), converging to cooperative,
+  coexistence, or defective-Nash regimes. A classic *Conway* mode is included.
+  Cooperation level couples back into the network as a global activity drive.
 
 Intended as a research / demonstration front-end for advancing EEG and fMRI
 tooling and for prototyping alongside Neuralink and Blackrock Neurotech systems.
@@ -38,6 +44,7 @@ npm run preview  # preview the production build
 | `src/data.js` | Anatomical regions, connectome edges, patient cases, device specs |
 | `src/network.js` | Three.js scene: region hubs, edges, neuron cloud, pulses, camera fly-to |
 | `src/signals.js` | Synthetic EEG / fMRI / BCI signal generation |
+| `src/gol.js` | GOL engine: Conway + spatial game-theory (Prisoner's Dilemma) AI |
 | `src/main.js` | UI wiring, orbit/pick controls, render + panel update loop |
 
 The signal data is synthetic and physiologically-plausible for demonstration.

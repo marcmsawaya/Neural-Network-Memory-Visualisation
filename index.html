@@ -70,6 +70,31 @@
           <p class="hint" id="fmriCaption">Voxel activation map (regional Z-score)</p>
         </section>
 
+        <section class="card gol-card">
+          <h2>GOL — Game of Life · Game-Theory AI</h2>
+          <div class="gol-toggles">
+            <button class="gtog active" data-gol="gametheory">Econ (Prisoner's Dilemma)</button>
+            <button class="gtog" data-gol="conway">Conway</button>
+          </div>
+          <canvas id="golCanvas" width="240" height="240"></canvas>
+          <div class="gol-controls">
+            <label class="slider-row"><span>Temptation T</span><input id="golT" type="range" min="1.0" max="2.0" step="0.05" value="1.6" /></label>
+            <label class="slider-row"><span>Mutation</span><input id="golNoise" type="range" min="0" max="0.15" step="0.01" value="0.02" /></label>
+            <div class="gol-btns">
+              <button id="golReset" class="mini-btn">Reset</button>
+              <button id="golPerturb" class="mini-btn">Inject defectors</button>
+              <button id="golPause" class="mini-btn">Pause</button>
+            </div>
+          </div>
+          <div class="gol-stats">
+            <div><label>Gen</label><strong id="golGen">0</strong></div>
+            <div><label>Cooperators</label><strong id="golCoop">—</strong></div>
+            <div><label>Avg payoff</label><strong id="golPay">—</strong></div>
+            <div><label>Regime</label><strong id="golRegime">—</strong></div>
+          </div>
+          <label class="check-row"><input id="golLink" type="checkbox" checked /> Couple cooperation → network drive</label>
+        </section>
+
         <section class="card bci-card">
           <h2>BCI Link</h2>
           <div class="bci-device">

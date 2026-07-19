@@ -1,15 +1,20 @@
 import * as THREE from "three";
 import { NeuralNetwork } from "./network.js";
 import { SignalEngine } from "./signals.js";
+import { GameOfLife, STRATEGY } from "./gol.js";
 import { REGIONS, PATIENTS, EEG_CHANNELS, BCI_DEVICES } from "./data.js";
 
 const net = new NeuralNetwork(document.getElementById("scene"));
 const sig = new SignalEngine();
+const gol = new GameOfLife(48, 48);
 
 let mode = "eeg";
 let bciConnected = false;
 let bciDevice = "neuralink";
 let activeRegion = null;
+let golPaused = false;
+let golLink = true;
+let golDrive = 0.5;
 
 /* ---------- UI: patient selector ---------- */
 const patientSelect = document.getElementById("patientSelect");
@@ -69,6 +74,52 @@ connectBtn.addEventListener("click", () => {
   connectBtn.classList.toggle("connected", bciConnected);
   connectBtn.textContent = bciConnected ? "Connected" : "Connect";
 });
+
+/* ---------- GOL: game-of-life / game-theory AI ---------- */
+const golCanvas = document.getElementById("golCanvas");
+const gctx = golCanvas.getContext("2d");
+document.querySelectorAll(".gtog").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".gtog").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    gol.setMode(btn.dataset.gol);
+  });
+});
+document.getElementById("golT").addEventListener("input", (e) => (gol.T = parseFloat(e.target.value)));
+document.getElementById("golNoise").addEventListener("input", (e) => (gol.noise = parseFloat(e.target.value)));
+document.getElementById("golReset").addEventListener("click", () => gol.randomize());
+document.getElementById("golPerturb").addEventListener("click", () =>
+  gol.injectDefectors((Math.random() * gol.cols) | 0, (Math.random() * gol.rows) | 0, 4)
+);
+const golPauseBtn = document.getElementById("golPause");
+golPauseBtn.addEventListener("click", () => {
+  golPaused = !golPaused;
+  golPauseBtn.textContent = golPaused ? "Resume" : "Pause";
+});
+document.getElementById("golLink").addEventListener("change", (e) => (golLink = e.target.checked));
+
+const GOL_COLORS = {
+  [STRATEGY.DEAD]: [8, 18, 32],
+  [STRATEGY.COOP]: [79, 209, 255],
+  [STRATEGY.DEFECT]: [255, 107, 107],
+};
+function drawGOL() {
+  const { cols, rows } = gol;
+  const img = gctx.createImageData(cols, rows);
+  for (let i = 0; i < gol.grid.length; i++) {
+    const c = GOL_COLORS[gol.grid[i]] || GOL_COLORS[STRATEGY.DEAD];
+    img.data[i * 4] = c[0];
+    img.data[i * 4 + 1] = c[1];
+    img.data[i * 4 + 2] = c[2];
+    img.data[i * 4 + 3] = 255;
+  }
+  // scale the tiny grid up to the canvas via an offscreen draw
+  const off = drawGOL._off || (drawGOL._off = document.createElement("canvas"));
+  off.width = cols; off.height = rows;
+  off.getContext("2d").putImageData(img, 0, 0);
+  gctx.imageSmoothingEnabled = false;
+  gctx.drawImage(off, 0, 0, cols, rows, 0, 0, golCanvas.width, golCanvas.height);
+}
 
 /* ---------- fMRI grid cells ---------- */
 const fmriGrid = document.getElementById("fmriGrid");
@@ -163,6 +214,7 @@ function drawRaster(spikes) {
 /* ---------- main loop ---------- */
 let last = performance.now();
 let fpsAcc = 0, fpsN = 0, fpsTimer = 0;
+let golAcc = 0;
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
@@ -170,12 +222,22 @@ function loop(now) {
   sig.step(dt);
   applyOrbit();
 
-  // drive region activity from selected modality
+  // advance the GOL game-theory automaton on a fixed cadence
+  golAcc += dt;
+  if (!golPaused && golAcc > 0.12) {
+    gol.step();
+    golAcc = 0;
+  }
+  const golStats = gol.stats();
+  golDrive = golLink ? 0.6 + golStats.coopRate * 0.8 : 1;
+
+  // drive region activity from selected modality, modulated by GOL cooperation
   for (const r of REGIONS) {
     let a = sig.regionActivity(r);
     if (mode === "fmri") a *= 0.8 + 0.2 * Math.sin(sig.t + r.pos[2]);
     if (mode === "bci") a *= bciConnected ? 1.1 : 0.5;
-    net.setActivity(r.id, a);
+    a *= golDrive;
+    net.setActivity(r.id, Math.min(1, a));
   }
   // occasional spontaneous pulses from the most active region
   if (Math.random() < 0.03) {
@@ -195,6 +257,13 @@ function loop(now) {
     const hue = 220 - v * 200; // blue -> red
     cell.style.background = `hsl(${hue}, 90%, ${20 + v * 45}%)`;
   });
+
+  // GOL panel
+  drawGOL();
+  document.getElementById("golGen").textContent = golStats.generation;
+  document.getElementById("golCoop").textContent = `${(golStats.coopRate * 100).toFixed(0)}%`;
+  document.getElementById("golPay").textContent = golStats.avgPayoff.toFixed(2);
+  document.getElementById("golRegime").textContent = golStats.regime;
 
   // BCI
   if (bciConnected) {
