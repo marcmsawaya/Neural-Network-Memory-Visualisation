@@ -2,6 +2,10 @@ import * as THREE from "three";
 import { NeuralNetwork } from "./network.js";
 import { SignalEngine } from "./signals.js";
 import { GameOfLife, STRATEGY } from "./gol.js";
+import { parseEDF } from "./ingest/edf.js";
+import { parseNIfTI, sliceToGrid } from "./ingest/nifti.js";
+import { StreamClient } from "./ingest/stream.js";
+import { buildSampleEDF } from "./ingest/sample.js";
 import { REGIONS, PATIENTS, EEG_CHANNELS, BCI_DEVICES } from "./data.js";
 
 const net = new NeuralNetwork(document.getElementById("scene"));
@@ -52,6 +56,61 @@ function selectRegion(id) {
   const r = REGIONS.find((x) => x.id === id);
   document.getElementById("regionInfo").textContent = `Region: ${r.name} · rhythm ${r.band}`;
 }
+
+/* ---------- UI: data source (real ingestion) ---------- */
+const edfInfo = document.getElementById("edfInfo");
+const wsInfo = document.getElementById("wsInfo");
+const stream = new StreamClient({
+  onFrame: (f) => sig.pushStreamFrame(f),
+  onStatus: (s, detail) => {
+    wsInfo.textContent = detail ? `Stream ${s}: ${detail}` : `Stream ${s} · ${stream.frames} frames`;
+  },
+});
+
+function setSource(src) {
+  sig.setSource(src);
+  document.querySelectorAll(".stog").forEach((b) => b.classList.toggle("active", b.dataset.src === src));
+  document.querySelectorAll(".src-pane").forEach((p) => (p.hidden = p.dataset.pane !== src));
+  document.getElementById("srcStatus").textContent = `Source: ${src}`;
+}
+document.querySelectorAll(".stog").forEach((btn) => {
+  btn.addEventListener("click", () => setSource(btn.dataset.src));
+});
+
+async function ingestEDF(arrayBuffer, name) {
+  try {
+    const edf = parseEDF(arrayBuffer);
+    sig.loadEDF(edf);
+    setSource("edf");
+    edfInfo.textContent = `${name}: ${edf.format} · ${edf.channels.length} ch · ${edf.channels[0]?.sampleRate?.toFixed(0)} Hz · ${edf.duration.toFixed(0)}s`;
+  } catch (err) {
+    edfInfo.textContent = `Error: ${err.message}`;
+  }
+}
+
+document.getElementById("edfFile").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (file) ingestEDF(await file.arrayBuffer(), file.name);
+});
+document.getElementById("loadSample").addEventListener("click", () => {
+  ingestEDF(buildSampleEDF(), "sample.edf");
+});
+document.getElementById("niiFile").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const nii = parseNIfTI(await file.arrayBuffer());
+    sig.loadFMRIGrid(sliceToGrid(nii, 8));
+    edfInfo.textContent = `${file.name}: NIfTI ${nii.dims.nx}×${nii.dims.ny}×${nii.dims.nz}`;
+  } catch (err) {
+    edfInfo.textContent = `Error: ${err.message}`;
+  }
+});
+document.getElementById("wsConnect").addEventListener("click", () => {
+  const url = document.getElementById("wsUrl").value.trim();
+  setSource("stream");
+  stream.connect(url);
+});
 
 /* ---------- UI: modality toggles + sliders ---------- */
 document.querySelectorAll(".tog").forEach((btn) => {
@@ -176,14 +235,15 @@ const ectx = eegCanvas.getContext("2d");
 function drawEEG() {
   const w = eegCanvas.width, h = eegCanvas.height;
   ectx.clearRect(0, 0, w, h);
-  const rows = EEG_CHANNELS.length;
+  const labels = sig.channelLabels();
+  const rows = labels.length;
   const rowH = h / rows;
   ectx.font = "9px monospace";
   for (let c = 0; c < rows; c++) {
     const buf = sig.eegBuffers[c];
     const yBase = rowH * c + rowH / 2;
     ectx.fillStyle = "#5f7bb0";
-    ectx.fillText(EEG_CHANNELS[c], 2, yBase - rowH / 2 + 9);
+    ectx.fillText(labels[c], 2, yBase - rowH / 2 + 9);
     ectx.beginPath();
     ectx.strokeStyle = c >= 4 ? "#b26bff" : "#4fd1ff";
     ectx.lineWidth = 1;
@@ -232,16 +292,16 @@ function loop(now) {
   golDrive = golLink ? 0.6 + golStats.coopRate * 0.8 : 1;
 
   // drive region activity from selected modality, modulated by GOL cooperation
-  for (const r of REGIONS) {
-    let a = sig.regionActivity(r);
+  REGIONS.forEach((r, ri) => {
+    let a = sig.regionActivity(r, ri);
     if (mode === "fmri") a *= 0.8 + 0.2 * Math.sin(sig.t + r.pos[2]);
     if (mode === "bci") a *= bciConnected ? 1.1 : 0.5;
     a *= golDrive;
     net.setActivity(r.id, Math.min(1, a));
-  }
+  });
   // occasional spontaneous pulses from the most active region
   if (Math.random() < 0.03) {
-    const hot = REGIONS.reduce((m, r) => (sig.regionActivity(r) > sig.regionActivity(m) ? r : m));
+    const hot = REGIONS.reduce((m, r, ri) => (sig.regionActivity(r, ri) > sig.regionActivity(m, REGIONS.indexOf(m)) ? r : m));
     net.emitPulse(activeRegion || hot.id);
   }
 
@@ -250,6 +310,9 @@ function loop(now) {
   // panels
   drawEEG();
   document.getElementById("eegBand").textContent = sig.dominantBand();
+  if (sig.source === "edf" && sig.edf) {
+    document.getElementById("eegRate").textContent = `${sig.edf.channels[0].sampleRate.toFixed(0)} Hz`;
+  }
 
   const grid = sig.fmriGrid();
   fmriCells.forEach((cell, i) => {

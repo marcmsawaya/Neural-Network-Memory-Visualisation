@@ -34,6 +34,37 @@
         </section>
 
         <section class="card">
+          <h2>Data Source</h2>
+          <div class="toggles" id="sourceToggles">
+            <button class="stog active" data-src="synthetic">Synthetic</button>
+            <button class="stog" data-src="edf">Recording</button>
+            <button class="stog" data-src="stream">Live</button>
+          </div>
+
+          <div class="src-pane" data-pane="edf" hidden>
+            <label class="file-row">
+              <span>EEG file (.edf / .bdf)</span>
+              <input id="edfFile" type="file" accept=".edf,.bdf" />
+            </label>
+            <label class="file-row">
+              <span>fMRI volume (.nii)</span>
+              <input id="niiFile" type="file" accept=".nii" />
+            </label>
+            <button id="loadSample" class="mini-btn">Load sample EEG</button>
+            <p class="hint" id="edfInfo">No recording loaded.</p>
+          </div>
+
+          <div class="src-pane" data-pane="stream" hidden>
+            <label class="file-row">
+              <span>WebSocket URL (LSL/BCI bridge)</span>
+              <input id="wsUrl" type="text" value="ws://localhost:8765" />
+            </label>
+            <button id="wsConnect" class="mini-btn">Connect stream</button>
+            <p class="hint" id="wsInfo">Expecting JSON frames: {"eeg":[...],"spikes":n}</p>
+          </div>
+        </section>
+
+        <section class="card">
           <h2>Signal Modality</h2>
           <div class="toggles" id="modalityToggles">
             <button class="tog active" data-mode="eeg">EEG</button>
@@ -117,6 +148,7 @@
 
       <footer class="statusbar">
         <span id="regionInfo">Region: —</span>
+        <span id="srcStatus">Source: synthetic</span>
         <span id="fps">-- fps</span>
         <span class="disclaimer">Research / demo visualization — not for diagnostic use.</span>
       </footer>

@@ -126,6 +126,28 @@ html, body {
 }
 
 .toggles { display: flex; gap: 6px; }
+.stog {
+  flex: 1;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--panel-border);
+  color: var(--muted);
+  border-radius: 9px;
+  padding: 8px 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.stog.active { color: var(--text); border-color: var(--good); background: rgba(51,224,160,0.16); }
+.src-pane { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.file-row { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted); }
+.file-row input[type=file], .file-row input[type=text] {
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 6px;
+  font-size: 11px;
+}
 .tog {
   flex: 1;
   background: rgba(255,255,255,0.04);
