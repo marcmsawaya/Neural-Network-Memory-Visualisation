@@ -60,9 +60,15 @@ function selectRegion(id) {
 /* ---------- UI: data source (real ingestion) ---------- */
 const edfInfo = document.getElementById("edfInfo");
 const wsInfo = document.getElementById("wsInfo");
+let wsState = "idle";
 const stream = new StreamClient({
-  onFrame: (f) => sig.pushStreamFrame(f),
+  onFrame: (f) => {
+    sig.pushStreamFrame(f);
+    // refresh the frame counter about 4x/s without spamming the DOM
+    if (stream.frames % 64 === 0) wsInfo.textContent = `Stream ${wsState} · ${stream.frames} frames`;
+  },
   onStatus: (s, detail) => {
+    wsState = s;
     wsInfo.textContent = detail ? `Stream ${s}: ${detail}` : `Stream ${s} · ${stream.frames} frames`;
   },
 });
