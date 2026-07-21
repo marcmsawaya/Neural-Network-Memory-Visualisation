@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NeuroVoyage — Neural Network Explorer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="scene"></canvas>
+
+      <header class="topbar">
+        <div class="brand">
+          <span class="logo">◉</span>
+          <div>
+            <h1>NeuroVoyage</h1>
+            <p>Clinical Neural Network Explorer · EEG / fMRI / BCI</p>
+          </div>
+        </div>
+        <div class="patient">
+          <label>Patient</label>
+          <select id="patientSelect"></select>
+          <span id="statusPill" class="pill pill-live">● LIVE</span>
+        </div>
+      </header>
+
+      <aside class="panel panel-left">
+        <section class="card">
+          <h2>Navigation</h2>
+          <p class="hint">Drag to orbit · scroll to zoom · use the region list to fly through the network.</p>
+          <div id="regionList" class="region-list"></div>
+        </section>
+
+        <section class="card">
+          <h2>Data Source</h2>
+          <div class="toggles" id="sourceToggles">
+            <button class="stog active" data-src="synthetic">Synthetic</button>
+            <button class="stog" data-src="edf">Recording</button>
+            <button class="stog" data-src="stream">Live</button>
+          </div>
+
+          <div class="src-pane" data-pane="edf" hidden>
+            <label class="file-row">
+              <span>EEG file (.edf / .bdf)</span>
+              <input id="edfFile" type="file" accept=".edf,.bdf" />
+            </label>
+            <label class="file-row">
+              <span>fMRI volume (.nii)</span>
+              <input id="niiFile" type="file" accept=".nii" />
+            </label>
+            <button id="loadSample" class="mini-btn">Load sample EEG</button>
+            <p class="hint" id="edfInfo">No recording loaded.</p>
+          </div>
+
+          <div class="src-pane" data-pane="stream" hidden>
+            <label class="file-row">
+              <span>WebSocket URL (LSL/BCI bridge)</span>
+              <input id="wsUrl" type="text" value="ws://localhost:8765" />
+            </label>
+            <button id="wsConnect" class="mini-btn">Connect stream</button>
+            <p class="hint" id="wsInfo">Expecting JSON frames: {"eeg":[...],"spikes":n}</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Signal Modality</h2>
+          <div class="toggles" id="modalityToggles">
+            <button class="tog active" data-mode="eeg">EEG</button>
+            <button class="tog" data-mode="fmri">fMRI (BOLD)</button>
+            <button class="tog" data-mode="bci">BCI Spikes</button>
+          </div>
+          <label class="slider-row">
+            <span>Activity gain</span>
+            <input id="gain" type="range" min="0.2" max="2.5" step="0.1" value="1" />
+          </label>
+          <label class="slider-row">
+            <span>Fly speed</span>
+            <input id="speed" type="range" min="0.2" max="3" step="0.1" value="1" />
+          </label>
+          <label class="check-row">
+            <input id="pulseToggle" type="checkbox" checked /> Signal propagation pulses
+          </label>
+        </section>
+      </aside>
+
+      <aside class="panel panel-right">
+        <section class="card">
+          <h2>EEG — 8 Channel</h2>
+          <canvas id="eegCanvas" width="360" height="200"></canvas>
+          <div class="metric-row">
+            <div><label>Dominant</label><strong id="eegBand">Alpha</strong></div>
+            <div><label>Sample</label><strong id="eegRate">256 Hz</strong></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>fMRI — BOLD Activation</h2>
+          <div id="fmriGrid" class="fmri-grid"></div>
+          <p class="hint" id="fmriCaption">Voxel activation map (regional Z-score)</p>
+        </section>
+
+        <section class="card gol-card">
+          <h2>GOL — Game of Life · Game-Theory AI</h2>
+          <div class="gol-toggles">
+            <button class="gtog active" data-gol="gametheory">Econ (Prisoner's Dilemma)</button>
+            <button class="gtog" data-gol="conway">Conway</button>
+          </div>
+          <canvas id="golCanvas" width="240" height="240"></canvas>
+          <div class="gol-controls">
+            <label class="slider-row"><span>Temptation T</span><input id="golT" type="range" min="1.0" max="2.0" step="0.05" value="1.6" /></label>
+            <label class="slider-row"><span>Mutation</span><input id="golNoise" type="range" min="0" max="0.15" step="0.01" value="0.02" /></label>
+            <div class="gol-btns">
+              <button id="golReset" class="mini-btn">Reset</button>
+              <button id="golPerturb" class="mini-btn">Inject defectors</button>
+              <button id="golPause" class="mini-btn">Pause</button>
+            </div>
+          </div>
+          <div class="gol-stats">
+            <div><label>Gen</label><strong id="golGen">0</strong></div>
+            <div><label>Cooperators</label><strong id="golCoop">—</strong></div>
+            <div><label>Avg payoff</label><strong id="golPay">—</strong></div>
+            <div><label>Regime</label><strong id="golRegime">—</strong></div>
+          </div>
+          <label class="check-row"><input id="golLink" type="checkbox" checked /> Couple cooperation → network drive</label>
+        </section>
+
+        <section class="card bci-card">
+          <h2>BCI Link</h2>
+          <div class="bci-device">
+            <select id="bciDevice">
+              <option value="neuralink">Neuralink N1 (1024 ch)</option>
+              <option value="blackrock">Blackrock Utah Array (96 ch)</option>
+              <option value="openbci">OpenBCI Cyton (8 ch)</option>
+            </select>
+            <button id="bciConnect" class="connect-btn">Connect</button>
+          </div>
+          <div class="bci-stats">
+            <div><label>Firing rate</label><strong id="bciRate">— Hz</strong></div>
+            <div><label>Impedance</label><strong id="bciImp">— kΩ</strong></div>
+            <div><label>Packet loss</label><strong id="bciLoss">— %</strong></div>
+            <div><label>Decoded intent</label><strong id="bciIntent">—</strong></div>
+          </div>
+          <div id="raster" class="raster"></div>
+        </section>
+      </aside>
+
+      <footer class="statusbar">
+        <span id="regionInfo">Region: —</span>
+        <span id="srcStatus">Source: synthetic</span>
+        <span id="fps">-- fps</span>
+        <span class="disclaimer">Research / demo visualization — not for diagnostic use.</span>
+      </footer>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
